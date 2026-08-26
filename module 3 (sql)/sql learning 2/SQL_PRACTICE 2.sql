@@ -1,0 +1,144 @@
+create database sql_practice2;
+use sql_practice2;
+
+create table table1(
+ID INTEGER,
+Major VARCHAR(100),
+GPA DECIMAL(10,1)
+);
+
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/SQL_PRACTICE2/table1.csv'
+INTO TABLE table1
+FIELDS TERMINATED BY ','
+LINES terminated by '\n'
+IGNORE 1 ROWS;
+
+create table table2(
+ID INTEGER,
+Course VARCHAR(100)
+);
+
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/SQL_PRACTICE2/table2.csv'
+INTO TABLE table2
+FIELDS TERMINATED BY ','
+LINES terminated by '\n'
+IGNORE 1 ROWS;
+
+SELECT * FROM TABLE1;
+SELECT * FROM TABLE2;
+
+
+--                                    continuing subqueries
+
+-- which major has the max num of students
+SELECT MAJOR FROM TABLE1 GROUP BY MAJOR 
+HAVING COUNT(ID) = (SELECT COUNT(ID) FROM TABLE1 GROUP BY MAJOR ORDER BY COUNT(ID) DESC LIMIT 1);
+
+--
+SELECT * FROM TABLE2 WHERE COURSE LIKE '%BUS%';
+
+--
+SELECT AVG(GPA) AS BUS101_GPA, (SELECT AVG(GPA) FROM TABLE1) AS OVERALL_GPA
+FROM TABLE1
+WHERE ID IN (SELECT ID FROM TABLE2 WHERE COURSE LIKE '%BUS%');
+
+-- FOR EACH MAJOR, LIST THE STUDENTS WHO HAVE GPA> AVG GPA OF THEIR RESPECTIVE MAJOR
+SELECT T1.ID, T1.MAJOR FROM TABLE1 T1 
+WHERE T1.GPA>(SELECT AVG(T2.GPA) FROM TABLE1 T2 group by T2.MAJOR ORDER BY AVG(T2.GPA) DESC LIMIT 1);
+
+
+--                           create,stored and view
+
+
+-- creating an index on the 'major' column in the 'grade' table
+create index idx_table1_major on table1(major);
+
+-- after index creation,select all rows having major=cs
+select * from table1 where major='computer science';
+
+-- create a view that shows all students with a gpa > 3.5
+create view high_gpa_students as
+select * from table1
+where gpa>3.5;
+
+select * from high_gpa_students;
+
+-- stored procedure: to count the number of students in a specified major
+DELIMITER //
+CREATE procedure COUNTSTUDENTS(IN MAJOR_NAME VARCHAR(255))
+BEGIN
+SELECT COUNT(*) FROM TABLE1 WHERE MAJOR=MAJOR_NAME;
+END //
+DELIMITER ;
+
+-- CREATE INDEXES  ON MULTIPLE COLUMNS- (BOTH MAJOR & GPA)
+CREATE index IDX_TABLE1_MAJOR_GPA ON TABLE1(MAJOR,GPA);
+
+-- STORED PROCEDURE TO RETURN THE GPA OF A STUDENT WHEN ID IS GIVEN
+DELIMITER //
+CREATE procedure GETSTUDENTSGPA(IN STUDENT_ID INT)
+BEGIN
+SELECT GPA FROM TABLE1 WHERE ID=STUDENT_ID;
+END //
+DELIMITER ;
+
+-- UPDATE THE VIEW
+create OR REPLACE view high_gpa_students as
+select * from table1
+where gpa>3.3;
+
+-- JOIN 2 TABLES TO GET ALL VIEWS
+CREATE VIEW STUDENTTABLE2 AS
+select T1.*,T2.COURSE
+FROM TABLE1 T1
+JOIN TABLE2 T2 ON T1.ID=T2.ID;
+
+SELECT * FROM STUDENTTABLE2;
+
+-- INSERTION
+INSERT INTO TABLE1(ID,Major,GPA)
+values(1011,'Economics',3.7);
+
+select * from table1;
+
+-- updation
+update table1
+set gpa=3.5
+where id=1002;
+
+-- deletion
+delete from table1
+where id=1007;
+
+-- INSERTION
+INSERT INTO TABLE2(ID,Course)
+values(1011,'ECON101');
+
+SELECT * FROM TABLE2;
+
+-- INSERT A NEW ID ONLY IF IT DOESNT EXIT ALREADY
+INSERT INTO TABLE1(ID,Major,GPA)
+SELECT 1012,'English',3.8
+WHERE NOT exists(SELECT 1 FROM TABLE1 WHERE ID=1012);
+
+-- UPDATE MULTIPLE ROWS
+UPDATE TABLE1
+SET GPA=4.0
+WHERE MAJOR='COMPUTER SCIENCE';
+
+-- delete ALL STUDENTS BELOW 3.3 GPA
+DELETE FROM TABLE1
+WHERE GPA<3.3;
+
+UPDATE TABLE1
+SET MAJOR='COMPUTER SCIENCE'
+WHERE ID IN (SELECT ID FROM TABLE2 WHERE COURSE LIKE '%CSCI%');
+
+-- UPDATE TO ADVANCE
+UPDATE TABLE2
+SET COURSE='ADV100'
+WHERE ID IN (select ID FROM TABLE1 WHERE GPA>3.5);
+
+-- DELETE STUDENTS FROM GRADE TABLE WHO ARE NOT TAKING ANY COURSES IN THE COURSES TABLE
+DELETE FROM TABLE1
+WHERE ID NOT IN (SELECT ID FROM TABLE2);
