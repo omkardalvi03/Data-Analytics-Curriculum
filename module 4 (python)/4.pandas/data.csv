@@ -1,0 +1,6 @@
+Name,Age,Salary,Department
+john,25.0,50000.0,marketing
+jane,35.0,60000.0,sales
+steve,,45000.0,marketing
+linda,28.0,,engi
+jane,35.0,60000.0,sales
